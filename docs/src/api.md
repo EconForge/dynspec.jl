@@ -31,7 +31,8 @@ list_variables
 list_constants
 residuals
 jacobian
-derivatives
+residuals_and_jacobian
+taylor
 filter_equations
 ```
 

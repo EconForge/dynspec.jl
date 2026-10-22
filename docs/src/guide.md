@@ -187,12 +187,12 @@ residuals(block; at=(z=0.1, k=5.2))
 
 ---
 
-### 6. Analytical Derivatives & Jacobians (`jacobian` & `derivatives`)
+### 6. Analytical Differentiation & Expansion (`jacobian`, `residuals_and_jacobian`, `taylor`)
 
-Exact analytical derivatives are computed via `ForwardDiff.Dual` numbers:
+Exact analytical derivatives are computed via `ForwardDiff.Dual` numbers evaluated directly on equation trees.
 
 #### `jacobian(block; wrt=...)`
-Compute the Jacobian matrix (or matrices):
+Compute only the sensitivity matrix (Jacobian):
 
 - **Bare Symbols** (`:α`, `:β`): parameters/constants.
 - **Time-dated tuples** (`(:z, 0)`, `(:k, -1)`, `(:c, 1)`): dynamic variables at specific time shifts.
@@ -219,22 +219,28 @@ wrt_grouped = [
 J_curr, J_lead = jacobian(block; wrt=wrt_grouped)
 ```
 
-#### `derivatives(block; wrt=...)` & The Taylor Expansion Hierarchy
-`derivatives` returns both residuals and Jacobian(s) simultaneously:
+#### `residuals_and_jacobian(block; wrt=...)`
+Designed for **numerical solvers** (Newton-Raphson, time iteration, projection methods), `residuals_and_jacobian` computes the equation residuals (errors) and sensitivity matrix (Jacobian) in a single pass:
+
 ```julia
-r, J = derivatives(block; wrt=[(:c, 0), (:c, 1)], filter_by=:arbitrage)
+r, J = residuals_and_jacobian(block; wrt=endo)
 # With grouped wrt:
-r, (J_curr, J_lead) = derivatives(block; wrt=wrt_grouped)
+r, (J_curr, J_lead) = residuals_and_jacobian(block; wrt=wrt_grouped)
 ```
 
-> [!TIP]
-> #### 💡 Why does `derivatives` return residuals?
-> In Dynspec, `derivatives` is structured around **orders of expansion** around the reference point $x_0$:
-> - **Order 0**: Residuals $f(x_0)$
-> - **Order 1**: Jacobian $\nabla f(x_0)$
-> - **Higher Orders (future)**: Hessians $\nabla^2 f(x_0)$, third-order tensors, etc.
-> 
-> Evaluating order 0 and order 1 together in `derivatives` ensures that both the baseline evaluation point and the sensitivity matrix are computed consistently. If you only need the first-order sensitivity matrix, use `jacobian(block; wrt=...)`.
+#### `taylor(block; wrt=..., [order=1])`
+Designed for **perturbation approximations**, `taylor` returns the coefficients of the Taylor expansion around the reference point:
+- **Order 0**: Residuals $f(x_0)$
+- **Order 1**: Jacobian $\nabla f(x_0)$
+- **Order 2+ (future)**: Hessians $\nabla^2 f(x_0)$, third-order tensors, etc.
+
+```julia
+# First-order expansion (order=1 is default):
+r, J = taylor(block; wrt=endo)
+r, (J_curr, J_lead) = taylor(block; wrt=wrt_grouped)
+```
+
+*(Note: `derivatives` is retained as a backward-compatible alias for `residuals_and_jacobian`).*
 
 ---
 
@@ -286,4 +292,5 @@ Open `notebooks/interactive_model.jl` to explore parameter sliders, real-time st
 | `filter_equations` | `block, tag` | — | `Vector{Equation}` | Filter equations by metadata tag |
 | `residuals` | `block::AbstractModelBlock` | `filter_by=nothing`, `at=nothing` | `Vector{Float64}` | Evaluate residuals directly on AST |
 | `jacobian` | `block::AbstractModelBlock` | `wrt`, `filter_by=nothing`, `at=nothing` | `Matrix` or `Tuple{Matrix...}` | Compute analytical Jacobian(s) |
-| `derivatives` | `block::AbstractModelBlock` | `wrt`, `filter_by=nothing`, `at=nothing` | `(r, J)` or `(r, (J1, ...))` | Simultaneous 0th-order residuals & 1st-order Jacobians |
+| `residuals_and_jacobian` | `block::AbstractModelBlock` | `wrt`, `filter_by=nothing`, `at=nothing` | `(r, J)` or `(r, (J1, ...))` | Simultaneous residuals & Jacobian for solvers |
+| `taylor` | `block::AbstractModelBlock` | `wrt`, `order=1`, `filter_by=nothing`, `at=nothing` | `(r, J)` or `(r, (J1, ...))` | Local Taylor expansion around steady state |

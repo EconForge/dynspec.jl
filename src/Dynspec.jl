@@ -18,7 +18,7 @@ export Normal, N, TimedVar, Complementarity, Equation, Context, AbstractModelBlo
 
 # Re-export key functions
 export parse_model, read_model, list_variables, list_constants, extract_variables, eval_residuals, residuals, filter_equations, equations
-export jacobian, derivatives
+export jacobian, residuals_and_jacobian, taylor, derivatives
 
 # Submodule for DSGE / Dyno-specific helpers
 export Dyno

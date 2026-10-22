@@ -113,7 +113,7 @@ function compute_dsge_jacobians(block::AbstractModelBlock; filter_by=nothing, en
         [(v, 0) for v in exo_syms]
     ]
 
-    res, (A, B, C, D) = derivatives(block; wrt=wrt_grouped, filter_by=filter_by, at=at)
+    res, (A, B, C, D) = residuals_and_jacobian(block; wrt=wrt_grouped, filter_by=filter_by, at=at)
     return (res, A, B, C, D)
 end
 

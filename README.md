@@ -33,7 +33,8 @@ A concise and elegant Julia package for reading, interpreting, and analyzing dyn
   - `list_constants(block)`: lists parameter/constant symbols defined in context.
   - `residuals(block; filter_by=..., at=...)`: evaluates equation residuals directly on AST trees.
   - `jacobian(block; wrt=..., filter_by=..., at=...)`: computes exact analytical Jacobians with `ForwardDiff` dual numbers; supports bare symbols as constants/parameters, time-dated variables, and grouped `wrt`.
-  - `derivatives(block; wrt=..., filter_by=..., at=...)`: computes 0th-order residuals and 1st-order Jacobians simultaneously.
+  - `residuals_and_jacobian(block; wrt=..., filter_by=..., at=...)`: computes residuals and Jacobian simultaneously for numerical solvers.
+  - `taylor(block; wrt=..., order=1)`: computes local Taylor expansion coefficients (0th and 1st order, and future higher orders).
   - `Dyno.first_order_model(block)`: unified first-order DSGE model NamedTuple with symbols, residuals, and Jacobians `(A, B, C, D)`.
 
 ## Quick Start
@@ -69,8 +70,11 @@ J_endo = jacobian(block; wrt=endo_vars)
 J_params = jacobian(block; wrt=[:α, :β, :δ])
 J_trans = jacobian(block; wrt=[(:z, 0), (:k, -1), (:i, 0)], filter_by=:transition)
 
-# Simultaneous residuals and Jacobian evaluation
-r, J = derivatives(block; wrt=[(:c, 0), (:c, 1)], filter_by=:arbitrage)
+# Simultaneous residuals and Jacobian evaluation (for numerical solvers)
+r, J = residuals_and_jacobian(block; wrt=[(:c, 0), (:c, 1)], filter_by=:arbitrage)
+
+# Local Taylor expansion around steady state (order 1)
+r, J = taylor(block; wrt=[(:c, 0), (:c, 1)], filter_by=:arbitrage)
 
 # List variables and constants
 list_variables(block)             # [:c, :e_y, :e_z, :i, :k, :y, :z]

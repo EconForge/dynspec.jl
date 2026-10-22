@@ -121,10 +121,13 @@ J_curr, J_lead = jacobian(block; wrt=wrt_grouped)
 println("\nGrouped Jacobian 1 (current [z[t], k[t]]): size ", size(J_curr))
 println("Grouped Jacobian 2 (leads [c[t+1], y[t+1]]): size ", size(J_lead))
 
-# Simultaneous residuals and Jacobian evaluation:
-r_arb, J_arb = derivatives(block; wrt=[(:c, 0), (:c, 1)], filter_by=:arbitrage)
+# Simultaneous residuals and Jacobian evaluation (for nonlinear solvers):
+r_arb, J_arb = residuals_and_jacobian(block; wrt=[(:c, 0), (:c, 1)], filter_by=:arbitrage)
 println("\nArbitrage block residual: ", r_arb[1])
 println("Arbitrage Jacobian wrt [c[t], c[t+1]]: ", round.(J_arb; digits=4))
+
+# Local Taylor expansion (order 1):
+r_taylor, J_taylor = taylor(block; wrt=[(:c, 0), (:c, 1)], filter_by=:arbitrage)
 
 # -------------------------------------------------------------
 # 5. Perturbation Matrices (A, B, C, D) for DSGE Solvers

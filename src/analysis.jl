@@ -7,7 +7,7 @@ using ForwardDiff
 using LinearAlgebra
 
 export list_variables, list_constants, extract_variables, eval_residuals, residuals, filter_equations
-export jacobian, derivatives
+export jacobian, residuals_and_jacobian, taylor, derivatives
 
 """
     list_variables(block::AbstractModelBlock; shifts::Bool=false) -> Vector{Symbol} or Dict{Symbol, Set{Int}}
@@ -231,14 +231,14 @@ _is_target(x::Pair{Symbol, Int}) = true
 _is_target(x) = false
 
 """
-    derivatives(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothing)
+    residuals_and_jacobian(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothing)
 
-Compute equation residuals and analytical Jacobians with respect to `wrt`.
+Simultaneously evaluate equation residuals (order 0) and analytical Jacobian(s) (order 1) with respect to `wrt`.
 - Bare symbols (`:α`, `:β`) represent constants/parameters.
 - Tuples (`(:z, 0)`, `(:k, -1)`) or `TimedVar`s represent variables with time shifts.
 - If `wrt` is grouped (e.g. `[ [(:z,0), (:x,0)], [(:z,1), (:x,1)] ]`), returns `(residuals, (J1, J2, ...))`.
 """
-function derivatives(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothing)
+function residuals_and_jacobian(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothing)
     is_grouped = (wrt isa AbstractVector || wrt isa Tuple) &&
                  !isempty(wrt) &&
                  !_is_target(first(wrt)) &&
@@ -262,6 +262,23 @@ function derivatives(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothi
 end
 
 """
+    taylor(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothing, order::Int=1)
+
+Compute local Taylor expansion terms of the model equations around the steady state (or `at`).
+- `order=1` (default): returns `(residuals, J)` or `(residuals, (J1, J2, ...))` for grouped `wrt`.
+"""
+function taylor(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothing, order::Int=1)
+    if order == 1
+        return residuals_and_jacobian(block; wrt=wrt, filter_by=filter_by, at=at)
+    else
+        throw(ArgumentError("Taylor expansion of order $order is not yet implemented (supported: order=1)"))
+    end
+end
+
+# Backwards compatibility alias
+const derivatives = residuals_and_jacobian
+
+"""
     jacobian(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothing)
 
 Compute analytical Jacobian(s) with respect to `wrt`.
@@ -269,7 +286,7 @@ If `wrt` is a flat vector of targets, returns a single `Matrix{Float64}`.
 If `wrt` is grouped (vector of vectors), returns a `Tuple` of `Matrix{Float64}`.
 """
 function jacobian(block::AbstractModelBlock; wrt, filter_by=nothing, at=nothing)
-    return derivatives(block; wrt=wrt, filter_by=filter_by, at=at)[2]
+    return residuals_and_jacobian(block; wrt=wrt, filter_by=filter_by, at=at)[2]
 end
 
 end # module Analysis

@@ -362,10 +362,17 @@ using LinearAlgebra
         @test size(J_grp1) == (5, 2)
         @test size(J_grp2) == (5, 2)
 
-        r_grp, (J_g1, J_g2) = derivatives(neo; wrt=wrt_grouped)
+        r_grp, (J_g1, J_g2) = residuals_and_jacobian(neo; wrt=wrt_grouped)
         @test length(r_grp) == 5
         @test J_g1 ≈ J_grp1
         @test J_g2 ≈ J_grp2
+
+        # Verify taylor() produces identical order-1 results
+        r_taylor, (J_t1, J_t2) = taylor(neo; wrt=wrt_grouped, order=1)
+        @test r_taylor == r_grp
+        @test J_t1 ≈ J_g1
+        @test J_t2 ≈ J_g2
+        @test_throws ArgumentError taylor(neo; wrt=wrt_grouped, order=2)
 
         # Filtered differentiation: differentiate only first 2 equations via predicate
         J_sub = jacobian(neo; wrt=[(:z, 0), (:k, 0)], filter_by=eq -> eq.raw in (neo.equations[1].raw, neo.equations[2].raw))
@@ -373,11 +380,12 @@ using LinearAlgebra
         @test J_sub[1, 1] ≈ -1.0
         @test J_sub[2, 1] ≈ 1.8859751917924765
 
-        # Simultaneous residuals and jacobian via derivatives()
-        r_all, J_all = derivatives(neo; wrt=endo_vars)
+        # Simultaneous residuals and jacobian via residuals_and_jacobian() and derivatives alias
+        r_all, J_all = residuals_and_jacobian(neo; wrt=endo_vars)
         @test length(r_all) == 5
         @test maximum(abs.(r_all)) < 1e-12
         @test J_all ≈ J_t
+        @test derivatives(neo; wrt=endo_vars) == (r_all, J_all)
 
         # compute_dsge_jacobians on ModelBlock directly
         r_dsge, A_dsge, B_dsge, C_dsge, D_dsge = compute_dsge_jacobians(neo; endogenous=[:z, :k, :y, :i, :c], exogenous=[:e_z, :e_y])
@@ -406,7 +414,8 @@ using LinearAlgebra
         @test @inferred(residuals(neo)) isa Vector{Float64}
         @test @inferred(residuals(neo; filter_by=:transition)) isa Vector{Float64}
         @test @inferred(jacobian(neo; wrt=endo_vars)) isa Matrix{Float64}
-        @test @inferred(jacobian(neo; wrt=endo_vars, filter_by=:transition)) isa Matrix{Float64}
+        @test @inferred(residuals_and_jacobian(neo; wrt=endo_vars)) isa Tuple{Vector{Float64}, Matrix{Float64}}
+        @test @inferred(taylor(neo; wrt=endo_vars)) isa Tuple{Vector{Float64}, Matrix{Float64}}
         @test @inferred(derivatives(neo; wrt=endo_vars)) isa Tuple{Vector{Float64}, Matrix{Float64}}
     end
 
