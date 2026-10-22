@@ -1,0 +1,8 @@
+[deps]
+Dynspec = "f7b1b99e-44df-40ca-b222-9e8cb417281e"
+PlotlyLight = "ca7969ec-10b3-423e-8d99-40f33abb42bf"
+Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+
+[sources]
+Dynspec = {path = ".."}

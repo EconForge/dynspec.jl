@@ -1,0 +1,27 @@
+# Julia package build and coverage artifacts
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+*.jld
+*.jld2
+
+# Documentation build output
+docs/build/
+docs/site/
+
+# Root Manifest
+Manifest.toml
+
+# Editor & OS temporary files
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+.ipynb_checkpoints/
+
+# Scratch & logs
+scratch/
+*.log
+dev.jl

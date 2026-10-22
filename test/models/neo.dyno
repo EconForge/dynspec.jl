@@ -1,0 +1,31 @@
+@name: Neoclassical
+
+# neoclassical model
+
+α <- 0.387 
+β <- 0.96
+γ <- 4.0
+δ <- 0.1
+ρ <- 0.9
+
+z[~] <- 0.0
+k[~] <- ((1/β-(1-δ))/α)**(1/(α-1))
+y[~] <- k[~]^α
+i[~] <- δ*k[~]
+c[~] <- y[~] - i[~]
+
+z[t] = ρ*z[t-1] + e_z[t] + e_y[t] :: "Productivity"
+y[t] = exp(z[t])*k[t-1]^α :: "Production"
+k[t] = k[t-1]*(1-δ) + i[t] :: "Capital Accumulation"
+c[t] = exp(z[t])*k[t-1]^α - i[t] :: "Resource Constraint"
+β*(c[t+1]/c[t])^(-γ)*(1-δ+α*y[t+1]/k[t]) = 1 :: "Euler Equation"
+
+e_z[t] <- N(0, 0.002^2)
+e_y[t] <- N(0, 0.001^2)
+
+@run: variants: {β : [0.95, 0.96]}
+@run: steady
+@run: check
+@run: solve
+@run: simulate: {T: 20}
+@run: plot
