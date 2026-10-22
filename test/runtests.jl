@@ -137,13 +137,22 @@ using LinearAlgebra
         @test :y in var_list
         @test :z in var_list
 
-        # Model properties
-        props = model_properties(model)
-        @test props[:name] == "Neoclassical"
-        @test props[:equations_count] == 5
-        @test :k in props[:variables]
-        @test :k in props[:endogenous]
-        @test :e_z in props[:exogenous]
+        # List constants
+        const_list = list_constants(model)
+        @test :α in const_list
+        @test :β in const_list
+        @test :γ in const_list
+
+        # First-order DSGE model NamedTuple
+        fo = Dyno.first_order_model(model)
+        @test :k in fo.symbols.endogenous
+        @test :e_z in fo.symbols.exogenous
+        @test :α in fo.symbols.constants
+        @test length(fo.residuals) == 5
+        @test size(fo.jacobians.A) == (5, 5)
+        @test size(fo.jacobians.B) == (5, 5)
+        @test size(fo.jacobians.C) == (5, 5)
+        @test size(fo.jacobians.D) == (5, 2)
 
         # Endogenous & Exogenous variable extraction
         vars_ee = endogenous_exogenous(model)

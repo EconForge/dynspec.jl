@@ -15,6 +15,7 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Function & Option Guide" => "guide.md",
+        "DSGE Models (Dyno)" => "dsge.md",
         "API Reference" => "api.md",
     ]
 )

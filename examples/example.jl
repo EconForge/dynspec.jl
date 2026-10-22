@@ -62,14 +62,17 @@ for (v, shifts) in sort(collect(vars), by=x->string(x[1]))
     println("  ", rpad(string(v), 6), " => time shifts: ", sort(collect(shifts)))
 end
 
+# List constants
+println("Constants:        ", list_constants(block))
+
 # Extract endogenous and exogenous variables via Dyno submodule
 endo, exo = Dyno.endogenous_exogenous(block)
 println("Endogenous:       ", endo)
 println("Exogenous:        ", exo)
 
-# Model properties helper
-println("\nModel Properties: ")
-println(Dyno.model_properties(block))
+# First order model representation
+fo = Dyno.first_order_model(block)
+println("First order model symbols: ", fo.symbols)
 
 # -------------------------------------------------------------
 # 3. Residuals & Tag Filtering (Direct Tree Evaluation)

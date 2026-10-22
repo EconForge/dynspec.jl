@@ -30,11 +30,11 @@ A concise and elegant Julia package for reading, interpreting, and analyzing dyn
   - Equations retain their individual parse tree nodes (`block[i].tree`).
 - **Model Analysis & Differentiation**:
   - `list_variables(block)`: lists variable names (and optional time shifts with `shifts=true`).
+  - `list_constants(block)`: lists parameter/constant symbols defined in context.
   - `residuals(block; filter_by=..., at=...)`: evaluates equation residuals directly on AST trees.
   - `jacobian(block; wrt=..., filter_by=..., at=...)`: computes exact analytical Jacobians with `ForwardDiff` dual numbers; supports bare symbols as constants/parameters, time-dated variables, and grouped `wrt`.
-  - `derivatives(block; wrt=..., filter_by=..., at=...)`: computes both residuals and Jacobian simultaneously.
-  - `compute_dsge_jacobians(block; filter_by=...)`: computes DSGE perturbation matrices `(residuals, A, B, C, D)`.
-  - `model_properties(block)`: summary overview of all model components.
+  - `derivatives(block; wrt=..., filter_by=..., at=...)`: computes 0th-order residuals and 1st-order Jacobians simultaneously.
+  - `Dyno.first_order_model(block)`: unified first-order DSGE model NamedTuple with symbols, residuals, and Jacobians `(A, B, C, D)`.
 
 ## Quick Start
 
@@ -72,13 +72,16 @@ J_trans = jacobian(block; wrt=[(:z, 0), (:k, -1), (:i, 0)], filter_by=:transitio
 # Simultaneous residuals and Jacobian evaluation
 r, J = derivatives(block; wrt=[(:c, 0), (:c, 1)], filter_by=:arbitrage)
 
-# Compute perturbation matrices (A, B, C, D) for DSGE solvers
-r, A, B, C, D = compute_dsge_jacobians(block)
-
-# List variables and model properties
+# List variables and constants
 list_variables(block)             # [:c, :e_y, :e_z, :i, :k, :y, :z]
+list_constants(block)             # [:α, :β, :γ, :δ, :ρ]
 list_variables(block; shifts=true)# Dict(:k => Set([-1, 0]), :c => Set([0, 1]), ...)
-model_properties(block)
+
+# DSGE first-order model representation (via Dyno submodule)
+using Dynspec.Dyno
+fo = Dyno.first_order_model(block)
+fo.symbols.endogenous             # [:z, :k, :y, :i, :c]
+fo.jacobians.A                    # 5×5 Matrix{Float64}
 ```
 
 ## Running Tests

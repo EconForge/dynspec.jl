@@ -6,7 +6,7 @@ using ..Parser
 using ForwardDiff
 using LinearAlgebra
 
-export list_variables, extract_variables, eval_residuals, residuals, filter_equations
+export list_variables, list_constants, extract_variables, eval_residuals, residuals, filter_equations
 export jacobian, derivatives
 
 """
@@ -30,6 +30,13 @@ function list_variables(block::AbstractModelBlock; shifts::Bool=false)
     end
     return shifts ? dict : sort(collect(keys(dict)))
 end
+
+"""
+    list_constants(block::AbstractModelBlock) -> Vector{Symbol}
+
+List all constant/parameter names defined in the block's context, sorted alphabetically.
+"""
+list_constants(block::AbstractModelBlock) = sort(collect(keys(block.context.constants)))
 
 function extract_variables(target)
     if target isa AbstractModelBlock || target isa Equation

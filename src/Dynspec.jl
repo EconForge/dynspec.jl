@@ -17,7 +17,7 @@ using YAML
 export Normal, N, TimedVar, Complementarity, Equation, Context, AbstractModelBlock, ModelBlock, ModelSpec
 
 # Re-export key functions
-export parse_model, read_model, list_variables, extract_variables, eval_residuals, residuals, filter_equations, equations
+export parse_model, read_model, list_variables, list_constants, extract_variables, eval_residuals, residuals, filter_equations, equations
 export jacobian, derivatives
 
 # Submodule for DSGE / Dyno-specific helpers

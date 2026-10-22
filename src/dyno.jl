@@ -12,7 +12,7 @@ using ..Analysis
 using LinearAlgebra
 
 export compute_dsge_jacobians, compute_jacobians, compute_jacobians!
-export DynamicModel, compile_dynamic, model_properties
+export DynamicModel, compile_dynamic, first_order_model
 export endogenous_exogenous, extract_endogenous_exogenous, list_endogenous_exogenous
 export solve_dsge, simulate_linear
 
@@ -56,31 +56,39 @@ const extract_endogenous_exogenous = endogenous_exogenous
 const list_endogenous_exogenous = endogenous_exogenous
 
 """
-    model_properties(block::AbstractModelBlock) -> Dict{Symbol, Any}
+    first_order_model(block::AbstractModelBlock; filter_by=nothing, endogenous=nothing, exogenous=nothing, at=nothing)
 
-Return a summary dictionary of model properties:
-`:name`, `:parameters`, `:steady_states`, `:processes`, `:variables`, `:dynamic_variables`,
-`:endogenous`, `:exogenous`, `:equations_count`, and `:tags`.
+Construct a first-order DSGE model representation as a NamedTuple:
+- `symbols`: NamedTuple of variable and parameter groups:
+  - `endogenous`: ordered list of endogenous variable symbols
+  - `exogenous`: ordered list of exogenous shock symbols
+  - `constants`: ordered list of constant / parameter symbols
+- `residuals`: residual vector evaluated at steady state (or `at`)
+- `jacobians`: NamedTuple of first-order Jacobians:
+  - `A`: ∂f / ∂y_{t+1} (lead)
+  - `B`: ∂f / ∂y_t     (current)
+  - `C`: ∂f / ∂y_{t-1} (lag)
+  - `D`: ∂f / ∂e_t     (shocks)
 """
-function model_properties(block::AbstractModelBlock)
-    all_tags = Set{Symbol}()
-    for eq in block.equations
-        for t in get(eq.metadata, :tags, Symbol[])
-            push!(all_tags, t)
-        end
-    end
-    endo_exo = endogenous_exogenous(block)
-    return Dict{Symbol, Any}(
-        :name => get(block.context.metadata, :name, "<anonymous>"),
-        :parameters => block.context.constants,
-        :steady_states => block.context.steady_states,
-        :processes => block.context.processes,
-        :variables => list_variables(block),
-        :dynamic_variables => list_variables(block; shifts=true),
-        :endogenous => endo_exo.endogenous,
-        :exogenous => endo_exo.exogenous,
-        :equations_count => length(block),
-        :tags => sort(collect(all_tags))
+function first_order_model(block::AbstractModelBlock; filter_by=nothing, endogenous=nothing, exogenous=nothing, at=nothing)
+    endo_syms, exo_syms = endogenous_exogenous(block; endogenous=endogenous, exogenous=exogenous)
+    const_syms = sort(collect(keys(block.context.constants)))
+
+    res, A, B, C, D = compute_dsge_jacobians(block; filter_by=filter_by, endogenous=endo_syms, exogenous=exo_syms, at=at)
+
+    return (
+        symbols = (
+            endogenous = endo_syms,
+            exogenous  = exo_syms,
+            constants  = const_syms,
+        ),
+        residuals = res,
+        jacobians = (
+            A = A,
+            B = B,
+            C = C,
+            D = D,
+        )
     )
 end
 
@@ -174,15 +182,31 @@ function solve_dsge(A::AbstractMatrix, B::AbstractMatrix, C::AbstractMatrix, D::
 end
 
 """
+    solve_dsge(model::NamedTuple; max_iter::Int=50, tol::Float64=1e-11)
+
+Solve a first-order DSGE model (as returned by `first_order_model(block)`) for the recursive decision rules:
+    y_t = P * y_{t-1} + Q * e_t
+"""
+function solve_dsge(m::NamedTuple; max_iter::Int=50, tol::Float64=1e-11)
+    if haskey(m, :jacobians) && haskey(m, :symbols)
+        j = m.jacobians
+        sol = solve_dsge(j.A, j.B, j.C, j.D; max_iter=max_iter, tol=tol)
+        return (P=sol.P, Q=sol.Q, symbols=m.symbols, residuals=m.residuals, jacobians=m.jacobians,
+                endogenous=m.symbols.endogenous, exogenous=m.symbols.exogenous,
+                A=j.A, B=j.B, C=j.C, D=j.D)
+    else
+        error("Expected a first_order_model NamedTuple with :jacobians and :symbols")
+    end
+end
+
+"""
     solve_dsge(block::AbstractModelBlock; filter_by=nothing, endogenous=nothing, exogenous=nothing, at=nothing, max_iter::Int=50, tol::Float64=1e-11)
 
 Compute first-order perturbation matrices and solve for the recursive decision rules `P` and `Q` (`y_t = P * y_{t-1} + Q * e_t`).
 """
 function solve_dsge(block::AbstractModelBlock; filter_by=nothing, endogenous=nothing, exogenous=nothing, at=nothing, max_iter::Int=50, tol::Float64=1e-11)
-    endo_syms, exo_syms = endogenous_exogenous(block; endogenous=endogenous, exogenous=exogenous)
-    r, A, B, C, D = compute_dsge_jacobians(block; filter_by=filter_by, endogenous=endo_syms, exogenous=exo_syms, at=at)
-    P, Q = solve_dsge(A, B, C, D; max_iter=max_iter, tol=tol)
-    return (P=P, Q=Q, endogenous=endo_syms, exogenous=exo_syms, residuals=r, A=A, B=B, C=C, D=D)
+    m = first_order_model(block; filter_by=filter_by, endogenous=endogenous, exogenous=exogenous, at=at)
+    return solve_dsge(m; max_iter=max_iter, tol=tol)
 end
 
 """
